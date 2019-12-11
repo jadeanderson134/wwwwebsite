@@ -1,0 +1,6 @@
+install.packages("blogdown")
+blogdown::install_hugo()
+blogdown::new_site(theme="nurlansu/hugo-sustain")
+install.packages("formatR")
+install.packages("ggplot2")
+install.packages("reticulate")

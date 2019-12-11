@@ -1,0 +1,805 @@
+---
+title: 'Project 1: Exploratory Data Analysis'
+author: "SDS348 Fall 2019"
+date: "9/16/2019"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+---
+
+
+
+<div id="data-wrangling-and-data-exploration" class="section level2">
+<h2>Data Wrangling and Data Exploration</h2>
+<div id="instructions" class="section level3">
+<h3>Instructions</h3>
+<p>A knitted R Markdown document (as a PDF) and the raw R Markdown file (as .Rmd) should both be submitted to Canvas by 11:59pm on 10/20/2019. These two documents will be graded jointly, so they must be consistent (i.e., don’t change the R Markdown file without also updating the knitted document). Knit an html copy too, for later!</p>
+<p>I envision your written text forming something of a narrative structure around your code/output. All results presented must have corresponding code. Any answers/results/plots etc. given without the corresponding R code that generated the result will not be graded. Furthermore, all code contained in your final project document should work properly. Please do not include any extraneous code or code which produces error messages. (Code which produces warnings is acceptable, as long as you understand what the warnings mean).</p>
+</div>
+<div id="find-data" class="section level3">
+<h3>Find data:</h3>
+<p>Find two (!) datasets with one variable in common (e.g., dates, years, states, counties, countries), both with at least 50 observations (i.e., rows) in each. When combined, the resulting/final dataset must have <strong>at least 4 different variables (at least 2 numeric) in addition to the common variable</strong>.</p>
+<p>Choose as many as you would like! If you found two datasets that you like but they don’t have enough variables, find a third dataset with the same common variable and join all three.</p>
+</div>
+<div id="guidelines" class="section level3">
+<h3>Guidelines</h3>
+<ol style="list-style-type: decimal">
+<li><p>If the datasets are not tidy, you will need to reshape them so that every observation has its own row and every variable its own column. If the datasets are both already tidy, you will make them untidy with pivot_wider()/spread() and then tidy them again with pivot_longer/gather() to demonstrate your use of the functions. It’s fine to wait until you have your descriptives to use these functions (e.g., you might want to pivot_wider() to rearrange the data to make your descriptive statistics easier to look at); it’s fine long as you use them at least once!</p>
+<ul>
+<li>Depending on your datasets, it might be a good idea to do this before joining. For example, if you have a dataset you like with multiple measurements per year, but you want to join by year, you could average over your numeric variables to get means/year, do counts for your categoricals to get a counts/year, etc.</li>
+</ul>
+<p>I chose two datasets which contain water quality and flow data information collecting from the same IBWC Gage at the Rio Grande Below Amistad Dam near Del Rio, TX. The first dataset, RioBelowDamB, contains the Monthly Flow Averages (ac-ft/mo) from 1956 to 2005. The second dataset, RioC, contains 40 different variables, like Dissolved Sodium (mg/L), Instantaneous Stream Flow (CFS), and Water Temperature (Centigrade), from the years 1972-1985. I currently am interning at a nonprofit called Devils River Conservancy (a tributary of the Rio Grande and one of the most pristine rivers in Texas), where I am constructing a database of all relevant scientific, cultural and anthropological information concerning the Devils River. These two datasets were both sent to me to include in the database and were collected by the International Boundary &amp; Water Commission and the Texas Water Commission. These datasets are interesting to me, not only because I want to pursue a career in helping manage and conserve Texas’ water resources, but also because the Rio Grande is considered one of the most endangered river systems in North America and I am curious to see if any patterns become relevant as I work with the data. I’m sure there will be a correlation between Monthly Average Stream Flow and Instantaneous Stream Flow, but I am curious as to whether there will be a correlation between Monthly Average Stream Flow and some of the measured dissolved chemicals in the river. I am also curious as to whether the pH changes due to temperature, or dissolved chemicals, and if there is a consistant correlation between Stream Flow and the Months.</p></li>
+</ol>
+<pre class="r"><code>library(dplyr)
+library(tidyr)
+library(tibble)
+library(ggplot2)
+library(scales)
+library(ggrepel)
+riobelowdamneardelrio &lt;- read.csv(&quot;~/riobelowdamneardelrio.csv&quot;)
+RioC &lt;- read.csv(&quot;~/RioC.csv&quot;)
+RioBelowDamB &lt;- riobelowdamneardelrio
+RioB &lt;- RioBelowDamB %&gt;% pivot_longer(c(&quot;Jan&quot;, &quot;Feb&quot;, &quot;Mar&quot;, &quot;Apr&quot;, &quot;May&quot;, &quot;Jun&quot;, 
+    &quot;Jul&quot;, &quot;Aug&quot;, &quot;Sep&quot;, &quot;Oct&quot;, &quot;Nov&quot;, &quot;Dec&quot;), names_to = &quot;Month&quot;, values_to = &quot;MonthlyFlowAvg&quot;)
+RioC3 &lt;- RioC %&gt;% group_by(Primary.Station.ID, Start.Date, Parameter.Long.Name) %&gt;% 
+    mutate(rn = row_number()) %&gt;% pivot_wider(names_from = &quot;Parameter.Long.Name&quot;, 
+    values_from = &quot;Result.Value&quot;)
+RioC3 &lt;- RioC3 %&gt;% select(-rn)
+RioC32 &lt;- RioC3 %&gt;% select(-Parameter.Code)
+RioC33 &lt;- RioC32 %&gt;% select(-Organization.Name, -Station.Location.Name, -State, -County, 
+    -Latitude, -Longitude, -Hydrologic.Unit.Code, -Legacy.STORET.Station.Type.Code, 
+    -Surface.Water.Indicator, -Composite.Method.Code, -Composite.Statistic.Code, 
+    -Sample.Depth)
+RioC33 &lt;- RioC33 %&gt;% select(-Organization.Code, -Primary.Station.ID, -Secondary.ID..1, 
+    -Secondary.ID..2, -Secondary.ID..3)
+RioC33 &lt;- RioC33 %&gt;% select(-End.Time, -`CODE NO FOR AGENCY ANALYZING SAMPLE (SEE APPEND)`, 
+    -`CODE NO FOR AGENCY COLLECTING SAMPLE-SEE APPEND.`)
+RioC33 &lt;- RioC33 %&gt;% ungroup(&quot;Start.Date&quot;)
+Rio &lt;- RioC33 %&gt;% separate(Start.Date, into = c(&quot;Year&quot;, &quot;Month&quot;, &quot;Day&quot;), sep = &quot;-&quot;, 
+    convert = T)
+RioC44 &lt;- Rio %&gt;% filter(!is.na(&quot;Sample.Code&quot;))
+Rio1 &lt;- RioC44 %&gt;% group_by(Month, Start.Time) %&gt;% summarise_each(funs(first(.[!is.na(.)])))
+RioC33 &lt;- Rio1 %&gt;% select(-Sample.Code, -X, -Primary.Station.ID, -Station.Location.Name.2, 
+    -Station.Location.Name.3, -Ground.Water.Indicator, -Pipe.Indicator, -End.Date, 
+    -UMK, -Composite.Grab.Number, -Efluent.Monitoring.Code, -Replicate.Number, -Pipe.ID, 
+    -Primary.Activity.Category, -Secondary.Activity.Category)
+Rio9 &lt;- transform(RioC33, Month = month.abb[Month])
+Rio1C &lt;- Rio9 %&gt;% select(-Remark.Code)</code></pre>
+<pre><code>In order to tidy RioBelowDamB I used pivot_longer to move the Months from column names to their own column entitled &quot;Months&quot;. I created a new column for Total Average Stream Flow as well, and moved the remaining values to their own column entitled MonthlyFlowAvg. For RioC I removed several columns that were either empty or contained categorical variables that were unnecessary for my desired results. I used pivot_wider to move the variables from the column &quot;Parameter Long Name&quot; and gave each variable it&#39;s own column with its listed values, from &quot;ResultValue&quot;. I separated the column &quot;Start Date&quot; into Month, Day, and Year, respectively, and changed the Month values from numbers to month abbreviations. </code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li><p>Join your 2+ separate data sources into a single dataset</p>
+<ul>
+<li>You will document the type of join that you do (left/right/inner/full), including how many cases in each dataset were dropped and why you chose this particular join</li>
+</ul></li>
+</ol>
+<pre class="r"><code>Rio2C &lt;- Rio1C
+Rio2C$MY &lt;- paste(Rio2C$Month, &quot;-&quot;, Rio2C$Year)
+Rio2B &lt;- RioB
+Rio2B$MY &lt;- paste(Rio2B$Month, &quot;-&quot;, Rio2B$Year)
+RioBC &lt;- inner_join(Rio2B, Rio2C, by = &quot;MY&quot;)
+RioBC &lt;- RioBC %&gt;% select(-Year.y, -Month.y)
+RioBC &lt;- rename(RioBC, Year = Year.x)
+RioBC &lt;- rename(RioBC, Month = Month.x)
+RioBCU &lt;- RioBC %&gt;% select(-TEMPERATURE..WATER..DEGREES.FAHRENHEIT., -TURBIDITY...JACKSON.CANDLE.UNITS., 
+    -BOD..5.DAY..20.DEG.C..........................MG.L, -OXYGEN..DISSOLVED..PERCENT.OF.SATURATION.........., 
+    -PH..LAB..STANDARD.UNITS.........................SU, -SPECIFIC.CONDUCTANCE.FIELD..UMHOS.CM...25C., 
+    -CHLORIDE..DISSOLVED.IN.WATER...........MG.L, -COLIFORM.TOT.MPN.CONFIRMED.TEST.35C..TUBE.31506., 
+    -RESIDUE..TOTAL.NONFILTRABLE..MG.L., -NITROGEN..AMMONIA..TOTAL..MG.L.AS.N., -AMMONIA..UNIONIZED..CALC.FR.TEMP.PH.NH4....MG.L., 
+    -AMMONIA..UNIONZED.......................MG.L.AS.N., -NITRATE.NITROGEN..TOTAL..MG.L.AS.N., 
+    -PHOSPHATE..TOTAL..MG.L.AS.PO4., -PHOSPHORUS..TOTAL..MG.L.AS.P., -CHLOROPHYLL.A.UG.L.SPECTROPHOTOMETRIC.ACID..METH., 
+    -RESIDUE..VOLATILE.NONFILTRABLE..MG.L., -RESIDUE.TOTAL.FILTRABLE..DRIED.AT.180C..MG.L, 
+    -HARDNESS..TOTAL..MG.L.AS.CACO3., -SODIUM.ADSORPTION.RATIO, -SOLIDS..DISSOLVED.SUM.OF.CONSTITUENTS..MG.L., 
+    -PHOSPHORUS..DISSOLVED.ORTHOPHOSPHATE..MG.L.AS.P., -CARBON..TOTAL.ORGANIC..MG.L.AS.C., 
+    -PHEOPHYTIN.A.UG.L.SPECTROPHOTOMETRIC.ACID..METH., -FLUORIDE..DISSOLVED..MG.L.AS.F., 
+    -ALKALINITY.FILTERED.SAMPLE.AS.CACO3..MG.L, -X, -NA.)
+RioBCU &lt;- RioBCU %&gt;% select(-Day, -Start.Time)
+names(RioBCU) &lt;- c(&quot;Year&quot;, &quot;Total&quot;, &quot;Month&quot;, &quot;MonthlyFlowAvg&quot;, &quot;Month_Year&quot;, &quot;H2OTemp_Centigrade&quot;, 
+    &quot;SpConductance&quot;, &quot;O2Dissolved&quot;, &quot;H2OCLTotal&quot;, &quot;SulfateTotal&quot;, &quot;pH&quot;, &quot;Inst_FlowStream&quot;, 
+    &quot;Alkalinity&quot;, &quot;CaDissolved&quot;, &quot;MgDissolved&quot;, &quot;NaDissolved&quot;, &quot;KDissolved&quot;, &quot;SilicaDissolved&quot;, 
+    &quot;Hardness&quot;)
+RioBCU &lt;- RioBCU %&gt;% select(-O2Dissolved, -Alkalinity)
+RioBCU &lt;- na.omit(RioBCU)</code></pre>
+<p>Before joining the two datasets I created a new column for both datasets which combined the Month and Year, “MY”, and then conducted an inner_join, because I only wanted to include the month-year combinations that were present in both datasets. I then removed some columns which only included a few variables and were mostly NAs, as I thought there wouldn’t be enough data present to draw any conclusions from them. I then renamed the remaining variables, so they would have easier labels. I then ran na.omit to remove any rows that still contained NAs, as I only wanted data which contained every measurement. Dropping the NAs could potentially be problematic, because you don’t have as much data to draw conclusions from, and could create a bias within your calculations. Depending on the dataset, an NA may have meaning and signify something as well.</p>
+<ol start="3" style="list-style-type: decimal">
+<li><p>Create summary statistics</p>
+<ul>
+<li><p>Use <em>all six</em> core <code>dplyr</code> functions (filter, select, arrange, group_by, mutate, summarize) to manipulate and explore your dataset. For mutate, create a new variable that is a function of at least one other variable, preferably using a dplyr vector function (see dplyr cheatsheet). It’s fine to use the <code>_if</code>, <code>_at</code>, <code>_all</code> versions of mutate/summarize instead (indeed, it is encouraged if you have lots of variables)</p></li>
+<li><p>Create summary statistics (mean, sd, var, n, quantile, min, max, n_distinct, cor, etc) for each of your numeric variables overall and after grouping by one of your categorical variables (either together or one-at-a-time; if you have two categorical variables, try to include at least one statistic based on a grouping of two categorical variables simultaneously). If you do not have any categorical variables, create one using mutate to satisfy the requirements above. Ideally, you will find a way to show these summary statistics in an easy-to-read table (e.g., by reshaping). If you have lots of numeric variables, or your categorical variables have too many categories, just pick a few (either numeric variables or categories of a categorical variable) and summarize based on those. It would be a good idea to show a correlation matrix for your numeric variables!</p></li>
+</ul></li>
+</ol>
+<pre class="r"><code>library(dplyr)
+colnames(RioBCU)[colnames(RioBCU) == &quot;Inst_FlowStream&quot;] &lt;- &quot;Instantaneous Stream Flow (CFS)&quot;
+RioBCU &lt;- RioBCU %&gt;% mutate(`%YearlyFlowAvg` = ((MonthlyFlowAvg/Total) * 100))
+RioBCU %&gt;% select(Year, Month, MonthlyFlowAvg) %&gt;% filter(MonthlyFlowAvg == max(MonthlyFlowAvg))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month MonthlyFlowAvg
+##   &lt;int&gt; &lt;chr&gt;          &lt;dbl&gt;
+## 1  1991 Oct          751520.</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, MonthlyFlowAvg) %&gt;% filter(MonthlyFlowAvg == min(MonthlyFlowAvg))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month MonthlyFlowAvg
+##   &lt;int&gt; &lt;chr&gt;          &lt;dbl&gt;
+## 1  1973 Mar            7274.</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, MonthlyFlowAvg) %&gt;% filter(MonthlyFlowAvg == 
+    max(MonthlyFlowAvg)) %&gt;% arrange(desc(MonthlyFlowAvg)))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [6]
+##    Year Month MonthlyFlowAvg
+##   &lt;int&gt; &lt;chr&gt;          &lt;dbl&gt;
+## 1  1991 Oct          751520.
+## 2  1990 Oct          680213.
+## 3  1994 May          520019.
+## 4  1992 Mar          430080.
+## 5  1986 Apr          383626.
+## 6  1984 May          352701.</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, MonthlyFlowAvg) %&gt;% filter(MonthlyFlowAvg == 
+    min(MonthlyFlowAvg)) %&gt;% arrange(MonthlyFlowAvg))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [6]
+##    Year Month MonthlyFlowAvg
+##   &lt;int&gt; &lt;chr&gt;          &lt;dbl&gt;
+## 1  1973 Mar            7274.
+## 2  1984 Nov           33041.
+## 3  1987 Dec           35571.
+## 4  1992 Oct           50062.
+## 5  1986 Jul           56884.
+## 6  1985 Oct           63167.</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, H2OTemp_Centigrade) %&gt;% filter(H2OTemp_Centigrade == 
+    max(H2OTemp_Centigrade))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month H2OTemp_Centigrade
+##   &lt;int&gt; &lt;chr&gt;              &lt;dbl&gt;
+## 1  1982 Aug                 26.5</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, H2OTemp_Centigrade) %&gt;% filter(H2OTemp_Centigrade == 
+    min(H2OTemp_Centigrade))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month H2OTemp_Centigrade
+##   &lt;int&gt; &lt;chr&gt;              &lt;dbl&gt;
+## 1  1989 Jan                    9</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, H2OTemp_Centigrade) %&gt;% filter(H2OTemp_Centigrade == 
+    max(H2OTemp_Centigrade)) %&gt;% arrange(desc(H2OTemp_Centigrade)))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [6]
+##    Year Month H2OTemp_Centigrade
+##   &lt;int&gt; &lt;chr&gt;              &lt;dbl&gt;
+## 1  1982 Aug                 26.5
+## 2  1985 Jul                 26  
+## 3  1984 Sep                 24.5
+## 4  1986 Aug                 24  
+## 5  1987 May                 23.5
+## 6  1994 Sep                 23.5</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, H2OTemp_Centigrade) %&gt;% filter(H2OTemp_Centigrade == 
+    min(H2OTemp_Centigrade)) %&gt;% arrange(H2OTemp_Centigrade))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [5]
+##    Year Month H2OTemp_Centigrade
+##   &lt;int&gt; &lt;chr&gt;              &lt;dbl&gt;
+## 1  1989 Jan                  9  
+## 2  1982 Feb                 10  
+## 3  1988 Jan                 10.5
+## 4  1983 Feb                 11  
+## 5  1985 Jan                 11  
+## 6  1985 Feb                 11</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, SulfateTotal) %&gt;% filter(SulfateTotal == max(SulfateTotal))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month SulfateTotal
+##   &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
+## 1  1990 Apr            310</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, SulfateTotal) %&gt;% filter(SulfateTotal == min(SulfateTotal))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month SulfateTotal
+##   &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
+## 1  1983 Oct            190</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, SulfateTotal) %&gt;% filter(SulfateTotal == 
+    max(SulfateTotal)) %&gt;% arrange(desc(SulfateTotal)))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [4]
+##    Year Month SulfateTotal
+##   &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
+## 1  1990 Apr            310
+## 2  1988 Jul            300
+## 3  1988 Aug            300
+## 4  1985 Feb            280
+## 5  1985 Dec            280
+## 6  1986 Dec            280</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, SulfateTotal) %&gt;% filter(SulfateTotal == 
+    min(SulfateTotal)) %&gt;% arrange(SulfateTotal))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [3]
+##    Year Month SulfateTotal
+##   &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
+## 1  1983 Oct            190
+## 2  1992 Apr            200
+## 3  1992 Sep            200
+## 4  1982 May            210
+## 5  1982 Sep            210
+## 6  1982 Nov            210</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, pH) %&gt;% filter(pH == max(pH))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month    pH
+##   &lt;int&gt; &lt;chr&gt; &lt;dbl&gt;
+## 1  1973 Mar     8.5</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, pH) %&gt;% filter(pH == min(pH))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month    pH
+##   &lt;int&gt; &lt;chr&gt; &lt;dbl&gt;
+## 1  1987 Oct     7.5</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, pH) %&gt;% filter(pH == max(pH)) %&gt;% 
+    arrange(desc(pH)))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [5]
+##    Year Month    pH
+##   &lt;int&gt; &lt;chr&gt; &lt;dbl&gt;
+## 1  1973 Mar     8.5
+## 2  1983 Feb     8.3
+## 3  1981 Oct     8.2
+## 4  1982 Feb     8.2
+## 5  1982 Nov     8.2
+## 6  1985 Jan     8.2</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, pH) %&gt;% filter(pH == min(pH)) %&gt;% 
+    arrange(pH))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [6]
+##    Year Month    pH
+##   &lt;int&gt; &lt;chr&gt; &lt;dbl&gt;
+## 1  1987 Oct     7.5
+## 2  1972 Sep     7.6
+## 3  1988 Aug     7.6
+## 4  1992 Jul     7.6
+## 5  1991 Sep     7.7
+## 6  1993 Dec     7.7</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, `Instantaneous Stream Flow (CFS)`) %&gt;% filter(`Instantaneous Stream Flow (CFS)` == 
+    max(`Instantaneous Stream Flow (CFS)`))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month `Instantaneous Stream Flow (CFS)`
+##   &lt;int&gt; &lt;chr&gt;                             &lt;dbl&gt;
+## 1  1991 Sep                               13200</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Month, `Instantaneous Stream Flow (CFS)`) %&gt;% filter(`Instantaneous Stream Flow (CFS)` == 
+    min(`Instantaneous Stream Flow (CFS)`))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    Year Month `Instantaneous Stream Flow (CFS)`
+##   &lt;int&gt; &lt;chr&gt;                             &lt;dbl&gt;
+## 1  1982 Aug                                47.6</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, `Instantaneous Stream Flow (CFS)`) %&gt;% 
+    filter(`Instantaneous Stream Flow (CFS)` == max(`Instantaneous Stream Flow (CFS)`)) %&gt;% 
+    arrange(desc(`Instantaneous Stream Flow (CFS)`)))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [6]
+##    Year Month `Instantaneous Stream Flow (CFS)`
+##   &lt;int&gt; &lt;chr&gt;                             &lt;dbl&gt;
+## 1  1991 Sep                               13200
+## 2  1988 Sep                                9110
+## 3  1994 May                                8865
+## 4  1984 May                                8860
+## 5  1992 Apr                                8510
+## 6  1990 Apr                                6530</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% select(Year, Month, `Instantaneous Stream Flow (CFS)`) %&gt;% 
+    filter(`Instantaneous Stream Flow (CFS)` == min(`Instantaneous Stream Flow (CFS)`)) %&gt;% 
+    arrange(`Instantaneous Stream Flow (CFS)`))</code></pre>
+<pre><code>## # A tibble: 6 x 3
+## # Groups:   Year [6]
+##    Year Month `Instantaneous Stream Flow (CFS)`
+##   &lt;int&gt; &lt;chr&gt;                             &lt;dbl&gt;
+## 1  1982 Aug                                47.6
+## 2  1985 Jan                                52  
+## 3  1972 Sep                               108  
+## 4  1989 Oct                               118  
+## 5  1988 Nov                               120  
+## 6  1987 Oct                               154</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Total) %&gt;% filter(Total == max(Total)) %&gt;% distinct()</code></pre>
+<pre><code>## # A tibble: 1 x 2
+##    Year    Total
+##   &lt;int&gt;    &lt;dbl&gt;
+## 1  1991 3047503.</code></pre>
+<pre class="r"><code>RioBCU %&gt;% select(Year, Total) %&gt;% filter(Total == min(Total)) %&gt;% distinct()</code></pre>
+<pre><code>## # A tibble: 1 x 2
+##    Year   Total
+##   &lt;int&gt;   &lt;dbl&gt;
+## 1  1972 416401.</code></pre>
+<pre class="r"><code>RioBCU %&gt;% summarize_at(c(meanTFA = &quot;Total&quot;, meanMFA = &quot;MonthlyFlowAvg&quot;, meanWT = &quot;H2OTemp_Centigrade&quot;, 
+    meanSulfate = &quot;SulfateTotal&quot;, meanpH = &quot;pH&quot;, meanIFS = &quot;Instantaneous Stream Flow (CFS)&quot;), 
+    mean, na.rm = T)</code></pre>
+<pre><code>## # A tibble: 1 x 6
+##    meanTFA meanMFA meanWT meanSulfate meanpH meanIFS
+##      &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;       &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+## 1 1992928. 178670.   17.8        245.   7.94   2412.</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% summarize_at(c(meanMFA = &quot;MonthlyFlowAvg&quot;, meanWT = &quot;H2OTemp_Centigrade&quot;, 
+    meanSulfate = &quot;SulfateTotal&quot;, meanpH = &quot;pH&quot;, meanIFS = &quot;Instantaneous Stream Flow (CFS)&quot;), 
+    mean, na.rm = T))</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##    Year meanMFA meanWT meanSulfate meanpH meanIFS
+##   &lt;int&gt;   &lt;dbl&gt;  &lt;dbl&gt;       &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+## 1  1972  84543.   19.4        230    7.6     108 
+## 2  1973   7274.   12.2        270    8.5    2290 
+## 3  1981 177720.   19.5        227.   8.07   1279.
+## 4  1982 171379.   20.0        218.   8.06   2110.
+## 5  1983 101317.   16.1        217    8.04   1364.
+## 6  1984 141803.   18.8        243    8.01   2209.</code></pre>
+<pre class="r"><code>RioBCU %&gt;% summarize_at(c(sdTFA = &quot;Total&quot;, sdMFA = &quot;MonthlyFlowAvg&quot;, sdWT = &quot;H2OTemp_Centigrade&quot;, 
+    sdSulfate = &quot;SulfateTotal&quot;, sdpH = &quot;pH&quot;, sdIFS = &quot;Instantaneous Stream Flow (CFS)&quot;), 
+    sd, na.rm = T)</code></pre>
+<pre><code>## # A tibble: 1 x 6
+##     sdTFA   sdMFA  sdWT sdSulfate  sdpH sdIFS
+##     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 581974. 132178.  4.35      26.5 0.163 2367.</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% summarize_at(c(sdMFA = &quot;MonthlyFlowAvg&quot;, sdWT = &quot;H2OTemp_Centigrade&quot;, 
+    sdSulfate = &quot;SulfateTotal&quot;, sdpH = &quot;pH&quot;, sdIFS = &quot;Instantaneous Stream Flow (CFS)&quot;), 
+    sd, na.rm = T))</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##    Year   sdMFA  sdWT sdSulfate    sdpH sdIFS
+##   &lt;int&gt;   &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+## 1  1972     NA  NA        NA    NA        NA 
+## 2  1973     NA  NA        NA    NA        NA 
+## 3  1981 126254.  1.73     11.5   0.115   921.
+## 4  1982  77621.  5.45      6.03  0.0924 1557.
+## 5  1983  30506.  3.83     14.2   0.151   590.
+## 6  1984  96077.  3.58     14.9   0.0994 2550.</code></pre>
+<pre class="r"><code>RioBCU %&gt;% summarise(`25%` = quantile(MonthlyFlowAvg, probs = 0.25), `50%` = quantile(MonthlyFlowAvg, 
+    probs = 0.5), `75%` = quantile(MonthlyFlowAvg, probs = 0.75))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##    `25%`   `50%`   `75%`
+##    &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 89629. 136652. 211053.</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% summarise(`25%` = quantile(MonthlyFlowAvg, probs = 0.25), 
+    `50%` = quantile(MonthlyFlowAvg, probs = 0.5), `75%` = quantile(MonthlyFlowAvg, 
+        probs = 0.75)))</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##    Year   `25%`   `50%`   `75%`
+##   &lt;int&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1  1972  84543.  84543.  84543.
+## 2  1973   7274.   7274.   7274.
+## 3  1981 104935. 111814. 217551.
+## 4  1982 115968. 155711. 221306.
+## 5  1983  73280.  94884. 132728.
+## 6  1984  81694. 120440. 192477.</code></pre>
+<pre class="r"><code>RioBCU %&gt;% summarise(`25%` = quantile(H2OTemp_Centigrade, probs = 0.25), `50%` = quantile(H2OTemp_Centigrade, 
+    probs = 0.5), `75%` = quantile(H2OTemp_Centigrade, probs = 0.75))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   `25%` `50%` `75%`
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1  14.1  18.5  20.9</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% summarise(`25%` = quantile(H2OTemp_Centigrade, 
+    probs = 0.25), `50%` = quantile(H2OTemp_Centigrade, probs = 0.5), `75%` = quantile(H2OTemp_Centigrade, 
+    probs = 0.75)))</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##    Year `25%` `50%` `75%`
+##   &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1  1972  19.4  19.4  19.4
+## 2  1973  12.2  12.2  12.2
+## 3  1981  18.5  18.5  20  
+## 4  1982  16    20.5  25.5
+## 5  1983  12.1  17.2  18.8
+## 6  1984  16.1  19    20.6</code></pre>
+<pre class="r"><code>RioBCU %&gt;% summarise(`25%` = quantile(SulfateTotal, probs = 0.25), `50%` = quantile(SulfateTotal, 
+    probs = 0.5), `75%` = quantile(SulfateTotal, probs = 0.75))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   `25%` `50%` `75%`
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1   220   240   260</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% summarise(`25%` = quantile(SulfateTotal, probs = 0.25), 
+    `50%` = quantile(SulfateTotal, probs = 0.5), `75%` = quantile(SulfateTotal, probs = 0.75)))</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##    Year `25%` `50%` `75%`
+##   &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1  1972   230   230  230 
+## 2  1973   270   270  270 
+## 3  1981   220   220  230 
+## 4  1982   215   220  220 
+## 5  1983   210   215  228.
+## 6  1984   230   240  255</code></pre>
+<pre class="r"><code>RioBCU %&gt;% summarise(`25%` = quantile(pH, probs = 0.25), `50%` = quantile(pH, probs = 0.5), 
+    `75%` = quantile(pH, probs = 0.75))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   `25%` `50%` `75%`
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1   7.8     8     8</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% summarise(`25%` = quantile(pH, probs = 0.25), 
+    `50%` = quantile(pH, probs = 0.5), `75%` = quantile(pH, probs = 0.75)))</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##    Year `25%` `50%` `75%`
+##   &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1  1972   7.6   7.6  7.6 
+## 2  1973   8.5   8.5  8.5 
+## 3  1981   8     8    8.1 
+## 4  1982   8     8.1  8.1 
+## 5  1983   7.9   8    8.17
+## 6  1984   8     8    8.1</code></pre>
+<pre class="r"><code>RioBCU %&gt;% summarise(`25%` = quantile(`Instantaneous Stream Flow (CFS)`, probs = 0.25), 
+    `50%` = quantile(`Instantaneous Stream Flow (CFS)`, probs = 0.5), `75%` = quantile(`Instantaneous Stream Flow (CFS)`, 
+        probs = 0.75))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   `25%` `50%` `75%`
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 1042.  1635  2980</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% group_by(Year) %&gt;% summarise(`25%` = quantile(`Instantaneous Stream Flow (CFS)`, 
+    probs = 0.25), `50%` = quantile(`Instantaneous Stream Flow (CFS)`, probs = 0.5), 
+    `75%` = quantile(`Instantaneous Stream Flow (CFS)`, probs = 0.75)))</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##    Year `25%` `50%` `75%`
+##   &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1  1972  108    108  108 
+## 2  1973 2290   2290 2290 
+## 3  1981  984   1750 1810 
+## 4  1982 1400   1620 2785 
+## 5  1983  894   1465 1798.
+## 6  1984  622.  1460 2322.</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% select_at(vars(MonthlyFlowAvg, H2OTemp_Centigrade, SpConductance, 
+    H2OCLTotal, SulfateTotal, pH, `Instantaneous Stream Flow (CFS)`, CaDissolved, 
+    MgDissolved, NaDissolved, KDissolved, SilicaDissolved, Hardness)) %&gt;% cor %&gt;% 
+    t)</code></pre>
+<pre><code>##                    MonthlyFlowAvg H2OTemp_Centigrade SpConductance H2OCLTotal
+## MonthlyFlowAvg         1.00000000         0.14679393   -0.05489633 -0.1334552
+## H2OTemp_Centigrade     0.14679393         1.00000000   -0.08139419 -0.1014739
+## SpConductance         -0.05489633        -0.08139419    1.00000000  0.9523561
+## H2OCLTotal            -0.13345523        -0.10147393    0.95235610  1.0000000
+## SulfateTotal          -0.09835212        -0.16819437    0.87648690  0.8041217
+## pH                    -0.24920003        -0.33461899   -0.22272570 -0.2072382
+##                    SulfateTotal         pH Instantaneous Stream Flow (CFS)
+## MonthlyFlowAvg      -0.09835212 -0.2492000                      0.71895038
+## H2OTemp_Centigrade  -0.16819437 -0.3346190                      0.03929923
+## SpConductance        0.87648690 -0.2227257                      0.07635903
+## H2OCLTotal           0.80412173 -0.2072382                      0.02589301
+## SulfateTotal         1.00000000 -0.1069130                      0.04339097
+## pH                  -0.10691298  1.0000000                     -0.16106166
+##                    CaDissolved MgDissolved NaDissolved  KDissolved
+## MonthlyFlowAvg     -0.11285421 -0.21356460 -0.07490566  0.06077141
+## H2OTemp_Centigrade -0.07929514 -0.03302862 -0.11518496 -0.26934583
+## SpConductance       0.74488129  0.84685657  0.97302965  0.51929146
+## H2OCLTotal          0.73231663  0.82565640  0.94799559  0.47007108
+## SulfateTotal        0.69319227  0.79606712  0.86826023  0.48488173
+## pH                 -0.13850145 -0.09213262 -0.25754445 -0.08171550
+##                    SilicaDissolved    Hardness
+## MonthlyFlowAvg         -0.01438936 -0.17428365
+## H2OTemp_Centigrade      0.01148611 -0.06806149
+## SpConductance          -0.19524835  0.88876752
+## H2OCLTotal             -0.26817089  0.87056146
+## SulfateTotal           -0.10167464  0.83080115
+## pH                      0.03895758 -0.13488946</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% select_at(vars(MonthlyFlowAvg, H2OTemp_Centigrade, SulfateTotal, 
+    pH, `Instantaneous Stream Flow (CFS)`)) %&gt;% cor %&gt;% t)</code></pre>
+<pre><code>##                                 MonthlyFlowAvg H2OTemp_Centigrade SulfateTotal
+## MonthlyFlowAvg                      1.00000000         0.14679393  -0.09835212
+## H2OTemp_Centigrade                  0.14679393         1.00000000  -0.16819437
+## SulfateTotal                       -0.09835212        -0.16819437   1.00000000
+## pH                                 -0.24920003        -0.33461899  -0.10691298
+## Instantaneous Stream Flow (CFS)     0.71895038         0.03929923   0.04339097
+##                                         pH Instantaneous Stream Flow (CFS)
+## MonthlyFlowAvg                  -0.2492000                      0.71895038
+## H2OTemp_Centigrade              -0.3346190                      0.03929923
+## SulfateTotal                    -0.1069130                      0.04339097
+## pH                               1.0000000                     -0.16106166
+## Instantaneous Stream Flow (CFS) -0.1610617                      1.00000000</code></pre>
+<pre><code>I utilized mutate in order to create a new variable entitled &quot;%YearlyFlowAvg&quot;, which shows what percentage of the total Average Flow (ac-ft/year) occurred in each month, by dividing MonthlyFlowAvg by Total and multiplying by 100. I then found the maximum and minimum values for the whole dataset, as well as grouped by year, for the variables &#39;MonthlyFlowAvg&#39;, &#39;H2OTemp_Centigrade&#39;, &#39;SulfateTotal&#39;, &#39;pH&#39;, `Instantaneous Stream Flow (CFS)`, and &#39;Total&#39; using select, filter, and group_by. I then found the mean and standard deviation of these 6 variables using the summarize_at function, I also found the mean and standard deviation grouped by Year, using group_by. I then used summarize to find the quantiles of &#39;MonthlyFlowAvg&#39;, &#39;H2OTemp_Centigrade&#39;, &#39;SulfateTotal&#39;, &#39;pH&#39;, and `Instantaneous Stream Flow (CFS)`, I also found the quantiles of these 5 variables grouped by Year. Finally I created two correlation matrices using select_at and cor, the first displays all numeric variables in the dataset, and the second is a correlation matrix of the 5 variables I utilized while data wrangling.</code></pre>
+<ol start="4" style="list-style-type: decimal">
+<li><p>Make visualizations</p>
+<ul>
+<li>If you have 5 variables (the minimum), with 2 numeric variables (the minimum), create at least two effective plots with ggplot that illustrate some of the more interesting findings that your descriptive statistics have turned up.</li>
+<li>Each plot should have at least three variables mapped to separate aesthetics (if correlation heatmap, etc, fine to do the same “variable” on both axes)</li>
+<li>At least one plot should include <code>stat=&quot;summary&quot;</code></li>
+<li>Each plot should include a supporting paragraph describing the relationships that are being visualized and any notable trends that are apparent
+<ul>
+<li>It is fine to include more, but limit yourself to 4. Plots should avoid being redundant! Four bad plots will get a lower grade than two good plots, all else being equal.</li>
+</ul></li>
+<li>If doing a 3D plot (not encouraged, but sometimes useful), it’s fine to use plotly for one plot (make the other(s) in ggplot).</li>
+</ul></li>
+</ol>
+<pre class="r"><code>z = RioBCU %&gt;% select_at(vars(MonthlyFlowAvg, H2OTemp_Centigrade, SpConductance, 
+    H2OCLTotal, SulfateTotal, pH, `Instantaneous Stream Flow (CFS)`, CaDissolved, 
+    MgDissolved, NaDissolved, KDissolved, SilicaDissolved, Hardness)) %&gt;% cor %&gt;% 
+    t
+z[lower.tri(z, diag = TRUE)] = NA
+z = as.data.frame(as.table(z))
+z = z[order(-abs(z$Freq)), ]
+tidycor &lt;- RioBCU %&gt;% select_at(vars(MonthlyFlowAvg, H2OTemp_Centigrade, SpConductance, 
+    H2OCLTotal, SulfateTotal, pH, `Instantaneous Stream Flow (CFS)`, CaDissolved, 
+    MgDissolved, NaDissolved, KDissolved, SilicaDissolved, Hardness)) %&gt;% cor %&gt;% 
+    t %&gt;% as.data.frame %&gt;% rownames_to_column %&gt;% pivot_longer(-1, names_to = &quot;Variables&quot;, 
+    values_to = &quot;correlation&quot;)
+tidycor %&gt;% ggplot(aes(rowname, Variables, fill = correlation)) + geom_tile() + scale_fill_gradient2(low = &quot;blue&quot;, 
+    mid = &quot;white&quot;, high = &quot;red&quot;) + geom_text(aes(label = round(correlation, 2)), 
+    color = &quot;black&quot;, size = 2) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    coord_fixed()</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-4-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(data = RioBCU, aes(x = Month, y = MonthlyFlowAvg, fill = `Instantaneous Stream Flow (CFS)`)) + 
+    geom_bar(stat = &quot;summary&quot;, fun.y = &quot;mean&quot;) + facet_wrap(~Year) + theme_dark() + 
+    ggtitle(&quot;Rio Grande Average &amp; Instantaneous Stream Flows&quot;) + ylab(&quot;Monthly Average Stream Flow (ac-ft/mo)&quot;) + 
+    xlab(&quot;Month&quot;) + theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 6)) + 
+    scale_y_continuous(labels = comma) + scale_x_discrete(limits = month.abb) + theme(axis.text.y = element_text(size = 10, 
+    angle = 45)) + scale_fill_gradient(low = &quot;blue&quot;, high = &quot;red&quot;) + geom_errorbar(aes(ymin = MonthlyFlowAvg - 
+    sd(MonthlyFlowAvg), ymax = MonthlyFlowAvg + sd(MonthlyFlowAvg)), width = 0.3, 
+    position = position_dodge(0.5))</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-4-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(data = RioBCU, aes(x = Month, y = NaDissolved, color = SpConductance)) + geom_point() + 
+    facet_wrap(~Year) + theme_dark() + ggtitle(&quot;Dissolved Sodium &amp; Specific Conductance of the Rio Grande by Month&quot;) + 
+    ylab(&quot;Dissolved Sodium (mg/L)&quot;) + theme(axis.text.x = element_text(angle = 90, 
+    hjust = 1, size = 6)) + scale_x_discrete(limits = month.abb) + theme(axis.text.y = element_text(size = 10, 
+    angle = 45)) + scale_y_continuous(breaks = round(seq(min(RioBCU$NaDissolved), 
+    max(RioBCU$NaDissolved), by = 30), 1)) + labs(color = &quot;Specific Conductance (UMHOS/cm @25°C)&quot;) + 
+    scale_color_gradientn(colours = rainbow(3)) + geom_errorbar(aes(ymin = NaDissolved - 
+    sd(NaDissolved), ymax = NaDissolved + sd(NaDissolved)), width = 0.3, position = position_dodge(0.5))</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-4-3.png" width="768" style="display: block; margin: auto;" /></p>
+<pre><code>I first created a correlation heatmap, with strong correlations as red, and weak as blue, a 0 correlation is displayed as white. I used this heatmap to determine correlation between all of my numeric variables, the strongest correlation was between Specific Conductance and Dissolved Sodium, which makes sense considering ions like Sodium as necessary for conductance in water. Other dissolved chemicals also displayed a correlation with the Specific Conductance. There was also a correlation between Monthly Flow Average and Instantaneous Stream Flow, as well as Hardness and Dissolved Calcium. The most negative correlation was between Dissolved Silica and the Chloride Content in Water. 
+
+My first graph displays the Average Stream Flow (ac-ft/mo), by month, and the bar colors display the Instantaneous Stream Flow (CFS), and is facet wrapped by Year. The graph displays the positive correlation between Instantaneous Stream Flow and the Monthly Average Flow, it also suggests that the Average Flows and Instantaneous Stream Flow are generally higher in the Spring and Fall, and lower in the Summer, although more data would have to be utilized to determine whether there was a true correlation between Average Stream Flow and the time of the year.
+
+My second graph displays the Dissolved Sodium (mg/L), by month, and the point colors display the Specific Conducatance (UMHOS/cm) of the water, it is facet wrapped by Year. The graph displays a positive correlation between Dissolved Sodium and the Specific Conductance. Dissolved Sodium levels do not appear to differ based on times of year, but rather vary more widely by year, suggesting a change in environmental factors, its interesting because the highest Dissolved Sodium Correlation appear to occur the same year as low Monthly Flow Averages (1988) and appear to decrease when flow levels increase again (1992). This makes sense as elements or chemicals in water increase in concentration when there is a smaller volume of water, although it is not represented in the correlation heatmap, so is like consequential.</code></pre>
+<ol start="5" style="list-style-type: decimal">
+<li><p>Perform k-means/PAM clustering or PCA on (at least) your numeric variables.</p>
+<ul>
+<li><p>Include all steps as we discuss in class, including a visualization.</p></li>
+<li><p>If you don’t have at least 3 numeric variables, or you want to cluster based on categorical variables too, convert them to factors in R, generate Gower’s dissimilarity matrix on the data, and do PAM clustering on the dissimilarities.</p></li>
+<li><p>Show how you chose the final number of clusters/principal components</p></li>
+<li><p>Interpret the final clusters/principal components</p></li>
+</ul></li>
+</ol>
+<pre class="r"><code>RioBCUN &lt;- RioBCU %&gt;% select(-Year, -Total, -Month, -Month_Year, -`%YearlyFlowAvg`)
+Rio_nums &lt;- RioBCUN %&gt;% select_if(is.numeric) %&gt;% scale
+Rio_pca &lt;- princomp(Rio_nums)
+eigval &lt;- Rio_pca$sdev^2
+varprop = round(eigval/sum(eigval), 2)
+ggplot() + geom_bar(aes(y = varprop, x = 1:13), stat = &quot;identity&quot;) + xlab(&quot;&quot;) + geom_path(aes(y = varprop, 
+    x = 1:13)) + geom_text(aes(x = 1:13, y = varprop, label = round(varprop, 2)), 
+    vjust = 1, col = &quot;white&quot;, size = 5) + scale_y_continuous(breaks = seq(0, 0.6, 
+    0.2), labels = scales::percent) + scale_x_continuous(breaks = 1:10)</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-5-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>round(cumsum(eigval)/sum(eigval), 2)</code></pre>
+<pre><code>##  Comp.1  Comp.2  Comp.3  Comp.4  Comp.5  Comp.6  Comp.7  Comp.8  Comp.9 Comp.10 
+##    0.49    0.63    0.74    0.81    0.87    0.92    0.95    0.97    0.99    1.00 
+## Comp.11 Comp.12 Comp.13 
+##    1.00    1.00    1.00</code></pre>
+<pre class="r"><code>eigval</code></pre>
+<pre><code>##     Comp.1     Comp.2     Comp.3     Comp.4     Comp.5     Comp.6     Comp.7 
+## 6.26166705 1.91049824 1.30416884 0.98727118 0.76560935 0.54946427 0.46017548 
+##     Comp.8     Comp.9    Comp.10    Comp.11    Comp.12    Comp.13 
+## 0.25435163 0.18636640 0.13580329 0.03621213 0.02096115 0.00000000</code></pre>
+<pre class="r"><code>eigen(cor(Rio_nums))</code></pre>
+<pre><code>## eigen() decomposition
+## $values
+##  [1]  6.323664e+00  1.929414e+00  1.317081e+00  9.970461e-01  7.731896e-01
+##  [6]  5.549045e-01  4.647317e-01  2.568700e-01  1.882116e-01  1.371479e-01
+## [11]  3.657066e-02  2.116869e-02 -1.665335e-16
+## 
+## $vectors
+##              [,1]         [,2]         [,3]         [,4]          [,5]
+##  [1,]  0.05225296 -0.637364133 -0.164881601 -0.121439450  0.1430975157
+##  [2,]  0.05190666 -0.232148203  0.693493555  0.081357179  0.1136259128
+##  [3,] -0.38859108 -0.054465812  0.011652155 -0.013815792 -0.0121585139
+##  [4,] -0.37982992 -0.008683235  0.024647400  0.086172262 -0.0007376954
+##  [5,] -0.36115910  0.012547115 -0.064668018 -0.122884911  0.0336284511
+##  [6,]  0.07919266  0.378134203 -0.456131528 -0.047225894  0.5764179402
+##  [7,] -0.01017670 -0.601906789 -0.270785652 -0.112106007  0.3049640462
+##  [8,] -0.32475015  0.016297631  0.059422071  0.052799990  0.2553611476
+##  [9,] -0.34305061  0.090038046  0.118150929 -0.180221548  0.1122453009
+## [10,] -0.38374680 -0.044297255  0.009480749 -0.009736304 -0.0811563252
+## [11,] -0.21118955 -0.098249112 -0.406386102  0.007954755 -0.6295779641
+## [12,]  0.08133042  0.092921337  0.118025278 -0.950433382 -0.1003083891
+## [13,] -0.37532247  0.052683868  0.094416887 -0.048670930  0.2219176358
+##               [,6]        [,7]        [,8]        [,9]       [,10]       [,11]
+##  [1,] -0.003815856  0.03283513  0.70574136 -0.10594997 -0.11737565 -0.05947069
+##  [2,]  0.558293213  0.33937749 -0.05246647  0.04386046  0.10053147 -0.01210239
+##  [3,]  0.088219651 -0.09289696  0.07123434 -0.13290073  0.24706013  0.34126972
+##  [4,]  0.043101318 -0.15694726 -0.03189119 -0.43001114  0.29239063 -0.73968648
+##  [5,]  0.078597125 -0.06301698  0.13260304  0.85521472  0.16360694 -0.25116183
+##  [6,]  0.473880653  0.20349670  0.10635132 -0.09949086  0.13876015  0.02828587
+##  [7,]  0.025280575 -0.09598033 -0.66595956  0.05007687  0.04316966  0.02919541
+##  [8,] -0.448914109  0.59061913 -0.03176660 -0.02934543 -0.04854126  0.02443139
+##  [9,]  0.286973341 -0.39788898 -0.01910989 -0.07993521 -0.65516847  0.05244656
+## [10,]  0.039758532 -0.16510024  0.08270581 -0.12189501  0.42328556  0.50965113
+## [11,]  0.362853250  0.45042389 -0.09956525 -0.04649582 -0.19003021 -0.01833663
+## [12,] -0.054062353  0.12441923 -0.04075564 -0.11401229  0.14623840 -0.05388028
+## [13,] -0.165017190  0.20765767 -0.02999851 -0.05666119 -0.33679425  0.04061776
+##              [,12]         [,13]
+##  [1,] -0.030388060  6.420032e-16
+##  [2,] -0.033938988  3.672529e-18
+##  [3,]  0.793033893 -4.730075e-15
+##  [4,] -0.050744237  3.140671e-15
+##  [5,] -0.004384583  1.024840e-15
+##  [6,] -0.031013885  1.073411e-16
+##  [7,] -0.011480852 -3.117639e-16
+##  [8,] -0.032379358 -5.162528e-01
+##  [9,] -0.073739901 -3.609887e-01
+## [10,] -0.595443280  1.019467e-15
+## [11,] -0.033132466 -8.208229e-17
+## [12,]  0.009174786  1.573710e-16
+## [13,] -0.055798295  7.766403e-01</code></pre>
+<pre class="r"><code>Riodf &lt;- data.frame(PC1 = Rio_pca$scores[, 1], PC2 = Rio_pca$scores[, 2])
+ggplot(Riodf, aes(PC1, PC2)) + geom_point()</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-5-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>Name &lt;- RioBCU$Month_Year
+Rio_pca$scores %&gt;% as.data.frame %&gt;% cbind(Name, .) %&gt;% top_n(3, Comp.1)</code></pre>
+<pre><code>##         Name   Comp.1     Comp.2     Comp.3     Comp.4     Comp.5     Comp.6
+## 1 Oct - 1983 4.810738 -0.1346684 -0.7867332 -1.3117495 -0.3879783 -0.2764777
+## 2 Oct - 1991 3.740406  5.1424090  0.8015262  0.1223763  0.2972387 -0.3668678
+## 3 Oct - 1992 3.776942 -0.3580757 -1.3289716 -0.5057692 -1.6023310 -0.6603129
+##        Comp.7     Comp.8      Comp.9     Comp.10     Comp.11    Comp.12
+## 1 -0.78215367 -0.4602170  0.15200230 -0.05384878  0.02941578  0.1147098
+## 2 -0.02716885  0.8950204  0.04099423  0.34078373 -0.11981664  0.1566955
+## 3 -0.44576394 -0.4662846 -0.12527405 -0.63618627  0.09227052 -0.1186232
+##         Comp.13
+## 1  1.776357e-15
+## 2  2.886580e-15
+## 3 -8.881784e-16</code></pre>
+<pre class="r"><code>Rio_pca$scores %&gt;% as.data.frame %&gt;% cbind(Name, .) %&gt;% top_n(3, wt = desc(Comp.1))</code></pre>
+<pre><code>##         Name    Comp.1    Comp.2     Comp.3     Comp.4     Comp.5     Comp.6
+## 1 Jun - 1988 -5.194191 0.1894962  0.2853396 -0.3530298  0.5453516 -0.6753797
+## 2 Jul - 1988 -5.968396 1.0769119 -0.5386901 -0.1299436  0.2228734  0.5640462
+## 3 Aug - 1988 -6.309833 1.6576218 -1.0891178 -0.1070540 -0.2604880  0.1874432
+##        Comp.7      Comp.8     Comp.9    Comp.10   Comp.11    Comp.12
+## 1 -0.05967632 -0.02277258 0.38655402 -0.5067801 0.1467436 -0.2105959
+## 2 -0.82044044  0.07827834 0.02571925  0.3600235 0.2063851 -0.2374006
+## 3 -0.58892943  0.04357148 0.03162301  0.7953824 0.2017457 -0.2274947
+##         Comp.13
+## 1 -2.886580e-15
+## 2 -4.218847e-15
+## 3 -5.551115e-15</code></pre>
+<pre class="r"><code>Rio_pca$scores %&gt;% as.data.frame %&gt;% cbind(Name, .) %&gt;% top_n(3, Comp.2)</code></pre>
+<pre><code>##         Name     Comp.1   Comp.2    Comp.3    Comp.4    Comp.5      Comp.6
+## 1 Sep - 1991  1.4395688 5.905570 0.4602322 0.8267727 0.9044109  0.04221558
+## 2 Oct - 1991  3.7404055 5.142409 0.8015262 0.1223763 0.2972387 -0.36686782
+## 3 May - 1994 -0.3308947 3.129596 1.4655386 1.3859508 0.9066943 -0.77773117
+##        Comp.7      Comp.8      Comp.9     Comp.10     Comp.11     Comp.12
+## 1 -0.14963755 -0.68470883 -0.75139536 -0.37198168  0.04877318  0.22013173
+## 2 -0.02716885  0.89502039  0.04099423  0.34078373 -0.11981664  0.15669551
+## 3 -0.46013949  0.04333819  0.35180053  0.05915026  0.15402734 -0.01611422
+##         Comp.13
+## 1  4.329870e-15
+## 2  2.886580e-15
+## 3 -2.525757e-15</code></pre>
+<pre class="r"><code>Rio_pca$scores %&gt;% as.data.frame %&gt;% cbind(Name, .) %&gt;% top_n(3, wt = desc(Comp.2))</code></pre>
+<pre><code>##         Name      Comp.1    Comp.2   Comp.3     Comp.4    Comp.5     Comp.6
+## 1 Mar - 1973 -3.33006811 -2.233510 2.629800 -1.0602990 1.6233676 -0.8550772
+## 2 Feb - 1983  3.37798355 -2.127837 1.245773  0.5382255 1.3318926  0.2603867
+## 3 Jan - 1985  0.07852217 -2.024169 1.094103  1.2590945 0.7386252  0.4614217
+##       Comp.7      Comp.8     Comp.9    Comp.10     Comp.11      Comp.12
+## 1  1.2436455 -0.41583177  0.5466972 -0.5497702  0.28630464  0.302310205
+## 2 -1.0037603 -0.01387276  0.4263274 -0.2640473 -0.10865072  0.003336789
+## 3 -0.1053791  0.68981880 -0.3028294 -0.1545622 -0.06058496 -0.268202040
+##         Comp.13
+## 1  2.220446e-16
+## 2  1.332268e-15
+## 3 -1.471046e-15</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% filter(Month_Year %in% c(&quot;Oct - 1983&quot;, &quot;Nov - 1991&quot;, &quot;Oct - 1992&quot;)))</code></pre>
+<pre><code>## # A tibble: 2 x 18
+##    Year  Total Month MonthlyFlowAvg Month_Year H2OTemp_Centigr… SpConductance
+##   &lt;int&gt;  &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;                 &lt;dbl&gt;         &lt;dbl&gt;
+## 1  1983 1.35e6 Oct          110532. Oct - 1983               21           898
+## 2  1992 2.62e6 Oct           50062. Oct - 1992               23           993
+## # … with 11 more variables: H2OCLTotal &lt;dbl&gt;, SulfateTotal &lt;dbl&gt;, pH &lt;dbl&gt;,
+## #   `Instantaneous Stream Flow (CFS)` &lt;dbl&gt;, CaDissolved &lt;dbl&gt;,
+## #   MgDissolved &lt;dbl&gt;, NaDissolved &lt;dbl&gt;, KDissolved &lt;dbl&gt;,
+## #   SilicaDissolved &lt;dbl&gt;, Hardness &lt;dbl&gt;, `%YearlyFlowAvg` &lt;dbl&gt;</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% filter(Month_Year %in% c(&quot;Feb - 1988&quot;, &quot;Mar - 1988&quot;, &quot;Aug - 1988&quot;)))</code></pre>
+<pre><code>## # A tibble: 1 x 18
+##    Year  Total Month MonthlyFlowAvg Month_Year H2OTemp_Centigr… SpConductance
+##   &lt;int&gt;  &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;                 &lt;dbl&gt;         &lt;dbl&gt;
+## 1  1988 1.81e6 Aug          259414. Aug - 1988             19.5          1500
+## # … with 11 more variables: H2OCLTotal &lt;dbl&gt;, SulfateTotal &lt;dbl&gt;, pH &lt;dbl&gt;,
+## #   `Instantaneous Stream Flow (CFS)` &lt;dbl&gt;, CaDissolved &lt;dbl&gt;,
+## #   MgDissolved &lt;dbl&gt;, NaDissolved &lt;dbl&gt;, KDissolved &lt;dbl&gt;,
+## #   SilicaDissolved &lt;dbl&gt;, Hardness &lt;dbl&gt;, `%YearlyFlowAvg` &lt;dbl&gt;</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% filter(Month_Year %in% c(&quot;Sep - 1991&quot;, &quot;Oct - 1991&quot;, &quot;May - 1994&quot;)))</code></pre>
+<pre><code>## # A tibble: 3 x 18
+##    Year  Total Month MonthlyFlowAvg Month_Year H2OTemp_Centigr… SpConductance
+##   &lt;int&gt;  &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;                 &lt;dbl&gt;         &lt;dbl&gt;
+## 1  1991 3.05e6 Sep          647011. Sep - 1991             23            1090
+## 2  1991 3.05e6 Oct          751520. Oct - 1991             22             985
+## 3  1994 2.18e6 May          520019. May - 1994             17.5          1210
+## # … with 11 more variables: H2OCLTotal &lt;dbl&gt;, SulfateTotal &lt;dbl&gt;, pH &lt;dbl&gt;,
+## #   `Instantaneous Stream Flow (CFS)` &lt;dbl&gt;, CaDissolved &lt;dbl&gt;,
+## #   MgDissolved &lt;dbl&gt;, NaDissolved &lt;dbl&gt;, KDissolved &lt;dbl&gt;,
+## #   SilicaDissolved &lt;dbl&gt;, Hardness &lt;dbl&gt;, `%YearlyFlowAvg` &lt;dbl&gt;</code></pre>
+<pre class="r"><code>head(RioBCU %&gt;% filter(Month_Year %in% c(&quot;Feb - 1983&quot;, &quot;Jan - 1984&quot;, &quot;Jan - 1985&quot;)))</code></pre>
+<pre><code>## # A tibble: 2 x 18
+##    Year  Total Month MonthlyFlowAvg Month_Year H2OTemp_Centigr… SpConductance
+##   &lt;int&gt;  &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;                 &lt;dbl&gt;         &lt;dbl&gt;
+## 1  1983 1.35e6 Feb           79236. Feb - 1983               11           988
+## 2  1985 1.22e6 Jan          122643. Jan - 1985               11          1170
+## # … with 11 more variables: H2OCLTotal &lt;dbl&gt;, SulfateTotal &lt;dbl&gt;, pH &lt;dbl&gt;,
+## #   `Instantaneous Stream Flow (CFS)` &lt;dbl&gt;, CaDissolved &lt;dbl&gt;,
+## #   MgDissolved &lt;dbl&gt;, NaDissolved &lt;dbl&gt;, KDissolved &lt;dbl&gt;,
+## #   SilicaDissolved &lt;dbl&gt;, Hardness &lt;dbl&gt;, `%YearlyFlowAvg` &lt;dbl&gt;</code></pre>
+<pre class="r"><code>Rio_pca$loadings[1:13, 1:2] %&gt;% as.data.frame %&gt;% rownames_to_column %&gt;% ggplot() + 
+    geom_hline(aes(yintercept = 0), lty = 2) + geom_vline(aes(xintercept = 0), lty = 2) + 
+    ylab(&quot;PC2&quot;) + xlab(&quot;PC1&quot;) + geom_segment(aes(x = 0, y = 0, xend = Comp.1, yend = Comp.2), 
+    arrow = arrow(), col = &quot;red&quot;) + geom_label_repel(aes(x = Comp.1 * 1.1, y = Comp.2 * 
+    1.1, label = rowname), point.padding = T)</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-5-3.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>install.packages(&quot;FactoMineR&quot;, repos = &quot;http://cran.us.r-project.org&quot;)</code></pre>
+<pre><code>## 
+## The downloaded binary packages are in
+##  /var/folders/b6/fg170n7x4sl67zct9fx02p3h0000gn/T//RtmpJsdnEE/downloaded_packages</code></pre>
+<pre class="r"><code>library(FactoMineR)
+install.packages(&quot;factoextra&quot;, repos = &quot;http://cran.us.r-project.org&quot;)</code></pre>
+<pre><code>## 
+## The downloaded binary packages are in
+##  /var/folders/b6/fg170n7x4sl67zct9fx02p3h0000gn/T//RtmpJsdnEE/downloaded_packages</code></pre>
+<pre class="r"><code>library(factoextra)
+RioBCU$Year &lt;- as.factor(RioBCU$Year)
+fviz_pca_biplot(Rio_pca, col.ind = RioBCU$Year) + coord_fixed()</code></pre>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-5-4.png" width="768" style="display: block; margin: auto;" /></p>
+<pre><code>PAM clustering was utilized in order to determine any correlations between the numeric variables within the dataset and group them into their correlations. According to the results conducted by PAM clustering, Instantaneous Stream Flow (CFS) and Monthly Avg Stream Flow (ac-ft/mo) are grouped together, along with Water Temperation (Centigrade). Dissolved Silica (mg/L) and pH are grouped together, and Specfic Conductance (UMHOS/cm), Dissolved Sodium, Calcium, Potassium, Sulfate, Magnesium, and Chloride (mg/L), as wel as Hardness, were grouped together. It appears the late 80&#39;s (1988-1990) are clustered more closely to the Dissolved Chemicals, and are mainly separated along dimension 1 from the early 80&#39;s and 90&#39;s (1982-1983 and 1991-1993). There is not as clear of a clustering across dimension2, although there are some clusters that appear above or below the line, 1985 and 1983 appear more closely clustered below dimension2, while 1994 and 1989 appear clustered on the dimension2 line. </code></pre>
+<ul>
+<li>For every step, you should document what your code does (in words) and what you see in the data.</li>
+</ul>
+</div>
+<div id="rubric" class="section level3">
+<h3>Rubric</h3>
+<p>Prerequisite: Finding appropriate data from at least two sources per the instructions above: Failure to do this will result in a 0! You will submit a .Rmd file and a knitted document (pdf).</p>
+<div id="introduction-4-pts" class="section level4">
+<h4>0. Introduction (4 pts)</h4>
+<ul>
+<li>Write a narrative introductory paragraph (or two) describing the datasets you have chosen, the variables they contain, how they were acquired, and why they are interesting to you. Expand on potential associations you may expect, if any.</li>
+</ul>
+</div>
+<div id="tidying-rearranging-widelong-8-pts" class="section level4">
+<h4>1. Tidying: Rearranging Wide/Long (8 pts)</h4>
+<ul>
+<li>Tidy the datasets (using the <code>tidyr</code> functions <code>pivot_longer</code>/<code>gather</code> and/or <code>pivot_wider</code>/<code>spread</code>)</li>
+<li>If you data sets are already tidy, untidy them, retidy them.</li>
+<li>Document the process (describe in words what was done)</li>
+</ul>
+</div>
+<div id="joiningmerging-8-pts" class="section level4">
+<h4>2. Joining/Merging (8 pts)</h4>
+<ul>
+<li>Join your datasets into one using a <code>dplyr</code> join function</li>
+<li>If you have multiple observations on the joining variable in either dataset, fix this by collapsing via summarize</li>
+<li>Discuss the process in words, including why you chose the join you did</li>
+<li>Discuss which cases were dropped, if any, and potential problems with this</li>
+</ul>
+</div>
+<div id="wrangling-40-pts" class="section level4">
+<h4>3. Wrangling (40 pts)</h4>
+<ul>
+<li>Use all six core <code>dplyr</code> functions in the service of generating summary statistics (18 pts)
+<ul>
+<li>Use mutate to generate a variable that is a function of at least one other variable</li>
+</ul></li>
+<li>Compute at least 10 different summary statistics using summarize and summarize with group_by (18 pts)
+<ul>
+<li>At least 2 of these should group by a categorical variable. Create one by dichotomizing a numeric if necessary</li>
+<li>If applicable, at least 1 of these 5 should group by two categorical variables</li>
+<li>Strongly encouraged to create a correlation matrix with <code>cor()</code> on your numeric variables</li>
+</ul></li>
+<li>Summarize/discuss all results in no more than two paragraphs (4 pts)</li>
+</ul>
+</div>
+<div id="visualizing-30-pts" class="section level4">
+<h4>4. Visualizing (30 pts)</h4>
+<ul>
+<li><p>Create two effective, polished plots with ggplot</p>
+<ul>
+<li>Each plot should map 3+ variables to aesthetics</li>
+<li>Each plot should have a title and clean labeling for all mappings</li>
+<li>Change at least one default theme element and color for at least one mapping per plot</li>
+<li>For at least one plot, add more tick marks (x, y, or both) than are given by default</li>
+<li>For at least one plot, use the stat=“summary” function</li>
+<li>Supporting paragraph or two (for each plot) describing the relationships/trends that are apparent</li>
+</ul></li>
+</ul>
+</div>
+<div id="dimensionality-reduction-20-pts" class="section level4">
+<h4>5. Dimensionality Reduction (20 pts)</h4>
+<ul>
+<li><p>Either k-means/PAM clustering or PCA (inclusive “or”) should be performed on at least three numeric variables in your dataset</p>
+<ul>
+<li>All relevant steps discussed in class should be included/reported</li>
+<li>A visualization of the clusters or the first few principal components (using ggplot2)</li>
+<li>Supporting paragraph or two describing results found</li>
+</ul></li>
+</ul>
+</div>
+</div>
+</div>
+<div id="where-do-i-find-data" class="section level2">
+<h2>Where do I find data?</h2>
+<p>OK, brace yourself! You can choose ANY datasets you want that meet the above criteria for variables and observations. I’m just sitting here but off the top of my head, if you are into amusement parks, you could look at amusement-park variables, including visits, and how they are impacted by weather. If you are interested in Game of Thrones, you could look at how the frequency of mentions of character names (plus other character variables) and the frequency of baby names in the US…You could even take your old Biostats data and merge in new data (e.g., based on a Google forms timestamp). You can make it as serious as you want, or not, but keep in mind that you will be incorporating this project into a portfolio webpage for your final in this course, so choose something that really reflects who you are, or something that you feel will advance you in the direction you hope to move career-wise, or something that you think is really neat. On the flip side, regardless of what you pick, you will be performing all the same tasks, so it doesn’t end up being that big of a deal. If you are totally clueless and have no direction at all, log into the server and type</p>
+<pre class="r"><code>data(package = .packages(all.available = TRUE))</code></pre>
+<p>This will print out a list of ALL datasets in ALL packages installed on the server (a ton)! Scroll until your eyes bleed! Actually, do not scroll that much… To start with something more manageable, just run the command on your own computer, or just run data() to bring up the datasets in your current environment. To read more about a dataset, do ?packagename::datasetname . If it is easier for you, and in case you don’t have many packages installed, a list of R datasets from a few common packages (also downloadable in CSV format) is given at the following website: <a href="https://vincentarelbundock.github.io/Rdatasets/datasets.html" class="uri">https://vincentarelbundock.github.io/Rdatasets/datasets.html</a> (<a href="https://vincentarelbundock.github.io/Rdatasets/datasets.html" class="uri">https://vincentarelbundock.github.io/Rdatasets/datasets.html</a>) A good package to download for fun/relevant data is fivethiryeight . Just run install.packages(“fivethirtyeight”), load the packages with library(fivethirtyeight) , r and then scroll down to view the datasets. Here is an online list of all 127 datasets (with links to the 538 articles). Lots of sports, politics, current events, etc. If you have already started to specialize (e.g., ecology, epidemiology) you might look at discipline-specific R packages (vegan, epi, respectively). We will be using some tools from these packages later in the course, but they come with lots of data too, which you can explore according to the directions above However, you emphatically DO NOT have to use datasets available via R packages! In fact, I would much prefer it if you found the data from completely separate sources and brought them together (a much more realistic experience in the real world)! You can even reuse data from your SDS328M project, provided it shares a variable in common with other data which allows you to merge the two together (e.g., if you still had the timestamp, you could look up the weather that day: <a href="https://www.wunderground.com/history/" class="uri">https://www.wunderground.com/history/</a> (<a href="https://www.wunderground.com/history/" class="uri">https://www.wunderground.com/history/</a>)). If you work in a research lab or have access to old data, you could potentially merge it with new data from your lab! Here is a curated list of interesting datasets (read-only spreadsheet format): <a href="https://docs.google.com/spreadsheets/d/1wZhPLMCHKJvwOkP4juclhjFgqIY8fQFMemwKL2c64vk/e" class="uri">https://docs.google.com/spreadsheets/d/1wZhPLMCHKJvwOkP4juclhjFgqIY8fQFMemwKL2c64vk/e</a> (<a href="https://docs.google.com/spreadsheets/d/1wZhPLMCHKJvwOkP4juclhjFgqIY8fQFMemwKL2c64vk/" class="uri">https://docs.google.com/spreadsheets/d/1wZhPLMCHKJvwOkP4juclhjFgqIY8fQFMemwKL2c64vk/</a> Here is another great compilation of datasets: <a href="https://github.com/rfordatascience/tidytuesday" class="uri">https://github.com/rfordatascience/tidytuesday</a> (<a href="https://github.com/rfordatascience/tidytuesday" class="uri">https://github.com/rfordatascience/tidytuesday</a>) Here is the UCI Machine Learning Repository: <a href="https://archive.ics.uci.edu/ml/index.php" class="uri">https://archive.ics.uci.edu/ml/index.php</a> (<a href="https://archive.ics.uci.edu/ml/index.php" class="uri">https://archive.ics.uci.edu/ml/index.php</a>) See also <a href="https://en.wikipedia.org/wiki/List_of_datasets_for_machine-" class="uri">https://en.wikipedia.org/wiki/List_of_datasets_for_machine-</a> learning_research#Biological_data (<a href="https://en.wikipedia.org/wiki/List_of_datasets_for_machine-" class="uri">https://en.wikipedia.org/wiki/List_of_datasets_for_machine-</a> learning_research#Biological_data) Here is another good general place to look: <a href="https://www.kaggle.com/datasets" class="uri">https://www.kaggle.com/datasets</a> (<a href="https://www.kaggle.com/datasets" class="uri">https://www.kaggle.com/datasets</a>) To help narrow your search down or to see interesting variable ideas, check out <a href="https://www.tylervigen.com/spurious-correlations" class="uri">https://www.tylervigen.com/spurious-correlations</a> (<a href="https://www.tylervigen.com/spurious-" class="uri">https://www.tylervigen.com/spurious-</a> correlations). This is the spurious correlations website, and it is fun, but if you look at the bottom of each plot you will see sources for the data. This is a good place to find very general data (or at least get a sense of where you can scrape data together from)! If you are interested in medical data, check out www.countyhealthrankings.org If you are interested in scraping UT data, they make loads of data public (e.g., beyond just professor CVs and syllabi). Check out all the data that is available in the statistical handbooks: <a href="https://reports.utexas.edu/statistical-handbook" class="uri">https://reports.utexas.edu/statistical-handbook</a> (<a href="https://reports.utexas.edu/statistical-handbook" class="uri">https://reports.utexas.edu/statistical-handbook</a>) Broader data sources: <a href="file:///Users/Jade/Desktop/UT%20Year%203/rtest.html">file:///Users/Jade/Desktop/UT%20Year%203/rtest.html</a> Page 27 of 28 un dit edit) Project 1: Exploratory Data Analysis 10/21/19, 9(32 AM Data.gov (www.data.gov) 186,000+ datasets! Social Explorer (Social%20Explorer) is a nice interface to Census and American Community Survey data (more user-friendly than the government sites). May need to sign up for a free trial. U.S. Bureau of Labor Statistics (www.bls.gov) U.S. Census Bureau (www.census.gov) Gapminder (www.gapminder.org/data), data about the world.</p>
+<p>…</p>
+</div>

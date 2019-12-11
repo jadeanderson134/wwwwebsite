@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Blogs on Jade Anderson</title>
+    <link>/blog/</link>
+    <description>Recent content in Blogs on Jade Anderson</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language>
+    <lastBuildDate>Tue, 10 Dec 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Writing Python Functions</title>
+      <link>/blog/writing-python-functions/</link>
+      <pubDate>Tue, 10 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/writing-python-functions/</guid>
+      <description>Writing functions in Python is an incredibly useful skill, it allows you to bundle a set of instructions so that you can repeatedly use them in a variety of contexts. This means you don’t have to rewrite complicated code over and over, or saves you time if you will know you will have to use a specific function repeatedly. The below code counts characters in a string!
+ sentence = &amp;quot;The quick brown fox jumps over the lazy dog.</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,102 @@
+---
+title: Writing Python Functions
+author: Jade Anderson
+date: '2019-12-10'
+slug: writing-python-functions
+categories: []
+tags: []
+description: ''
+---
+
+
+
+<p>Writing functions in Python is an incredibly useful skill, it allows you to bundle a set of instructions so that you can repeatedly use them in a variety of contexts. This means you don’t have to rewrite complicated code over and over, or saves you time if you will know you will have to use a specific function repeatedly. The below code counts characters in a string!</p>
+<div class="figure">
+<img src="/blog/2019-12-10-writing-python-functions_files/images.png" width="200" height="200" />
+
+</div>
+<pre class="python"><code>sentence = &quot;The quick brown fox jumps over the lazy dog.&quot;
+
+counts = {}
+for c in sentence:
+  if c in counts:
+    counts[c]+=1
+  else:
+    counts[c]=1
+    
+for c in counts:
+  print(c, &quot;appears&quot;, counts[c],&quot;times&quot;)</code></pre>
+<pre><code>## (&#39; &#39;, &#39;appears&#39;, 8, &#39;times&#39;)
+## (&#39;.&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;T&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;a&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;c&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;b&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;e&#39;, &#39;appears&#39;, 3, &#39;times&#39;)
+## (&#39;d&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;g&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;f&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;i&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;h&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;k&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;j&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;m&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;l&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;o&#39;, &#39;appears&#39;, 4, &#39;times&#39;)
+## (&#39;n&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;q&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;p&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;s&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;r&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;u&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;t&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;w&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;v&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;y&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;x&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;z&#39;, &#39;appears&#39;, 1, &#39;times&#39;)</code></pre>
+<p>To create a function just add “def” in front of your new_function_name(function_imput), this defines the function you wrote! Then you will be able to apply this function to an unlimited amount of strings!</p>
+<pre class="python"><code>def character_count(sentence):
+  counts = {}
+  for c in sentence:
+    if c in counts:
+      counts[c]+=1
+    else:
+      counts[c]=1
+      
+  for c in counts:
+    print(c, &quot;appears&quot;, counts[c], &quot;times&quot;)
+    
+    
+newsentence = &quot;How vexingly quick daft zebras jump.&quot;
+character_count(newsentence)</code></pre>
+<pre><code>## (&#39; &#39;, &#39;appears&#39;, 5, &#39;times&#39;)
+## (&#39;.&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;H&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;a&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;c&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;b&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;e&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;d&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;g&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;f&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;i&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;k&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;j&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;m&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;l&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;o&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;n&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;q&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;p&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;s&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;r&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;u&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;t&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;w&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;v&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;y&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;x&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;z&#39;, &#39;appears&#39;, 1, &#39;times&#39;)</code></pre>
+<p>As you can see, the ability to write python functions is very versatile and easy to use!</p>
+<p>Have fun coding! :)</p>

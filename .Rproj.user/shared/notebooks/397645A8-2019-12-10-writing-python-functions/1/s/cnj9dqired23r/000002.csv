@@ -1,0 +1,43 @@
+"0","def character_count(sentence):
+  counts = {}
+  for c in sentence:
+    if c in counts:
+      counts[c]+=1
+    else:
+      counts[c]=1
+      
+  for c in counts:
+    print(c, ""appears"", counts[c], ""times"")
+    
+    
+newsentence = ""How vexingly quick daft zebras jump.""
+character_count(newsentence)"
+"1","(' ', 'appears', 5, 'times')
+('.', 'appears', 1, 'times')
+('H', 'appears', 1, 'times')
+('a', 'appears', 2, 'times')
+('c', 'appears', 1, 'times')
+('b', 'appears', 1, 'times')
+('e', 'appears', 2, 'times')
+('d', 'appears', 1, 'times')
+('g', 'appears', 1, 'times')
+('f', 'appears', 1, 'times')
+('i', 'appears', 2, 'times')
+('k', 'appears', 1, 'times')
+('j', 'appears', 1, 'times')
+('m', 'appears', 1, 'times')
+('l', 'appears', 1, 'times')
+('o', 'appears', 1, 'times')
+('n', 'appears', 1, 'times')
+('q', 'appears', 1, 'times')
+('p', 'appears', 1, 'times')
+('s', 'appears', 1, 'times')
+('r', 'appears', 1, 'times')
+('u', 'appears', 2, 'times')
+('t', 'appears', 1, 'times')
+('w', 'appears', 1, 'times')
+('v', 'appears', 1, 'times')
+('y', 'appears', 1, 'times')
+('x', 'appears', 1, 'times')
+('z', 'appears', 1, 'times')
+"

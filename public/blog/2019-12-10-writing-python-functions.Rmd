@@ -1,0 +1,49 @@
+---
+title: Writing Python Functions
+author: Jade Anderson
+date: '2019-12-10'
+slug: writing-python-functions
+categories: []
+tags: []
+description: ''
+---
+Writing functions in Python is an incredibly useful skill, it allows you to bundle a set of instructions so that you can repeatedly use them in a variety of contexts. This means you don't have to rewrite complicated code over and over, or saves you time if you will know you will have to use a specific function repeatedly. The below code counts characters in a string!
+
+![](/blog/2019-12-10-writing-python-functions_files/images.png){width=200px height=200px}
+
+```{python}
+sentence = "The quick brown fox jumps over the lazy dog."
+
+counts = {}
+for c in sentence:
+  if c in counts:
+    counts[c]+=1
+  else:
+    counts[c]=1
+    
+for c in counts:
+  print(c, "appears", counts[c],"times")
+```
+
+To create a function just add "def" in front of your new_function_name(function_imput), this defines the function you wrote! Then you will be able to apply this function to an unlimited amount of strings!
+
+```{python}
+def character_count(sentence):
+  counts = {}
+  for c in sentence:
+    if c in counts:
+      counts[c]+=1
+    else:
+      counts[c]=1
+      
+  for c in counts:
+    print(c, "appears", counts[c], "times")
+    
+    
+newsentence = "How vexingly quick daft zebras jump."
+character_count(newsentence)
+```
+
+As you can see, the ability to write python functions is very versatile and easy to use!
+
+Have fun coding! :)
